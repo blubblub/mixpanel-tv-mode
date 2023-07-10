@@ -1,6 +1,6 @@
-var hideSearchBar = false;
-var hideDescriptionBar = false;
-var displayConcreteNumbers = false;
+var shouldHideSearchBar = false;
+var shouldHideDescriptionBar = false;
+var shouldDisplayConcreteNumbers = false;
 
 // Fetch options
 chrome.storage.sync.get(
@@ -10,9 +10,10 @@ chrome.storage.sync.get(
     displayConcreteNumbers: true
 },
 (items) => {
-    hideSearchBar = items.hideSearchBar;
-    hideDescriptionBar = items.hideDescriptionBar;
-    displayConcreteNumbers = items.displayConcreteNumbers;
+    shouldHideSearchBar = items.hideSearchBar;
+    shouldHideDescriptionBar = items.hideDescriptionBar;
+    shouldDisplayConcreteNumbers = items.displayConcreteNumbers;
+
 });
 
 function updateMetric(multiMetricSelectorChart) {
@@ -58,16 +59,21 @@ function hideSearchBar() {
 }
 
 function update() {
+    console.log(window.location.toString());
+    // Only active when tv=true
+    if (window.location.toString().indexOf('tv=true') === -1) {
+        return;
+    }
 
-    if (hideSearchBar) {
+    if (shouldHideSearchBar) {
         hideSearchBar();
     }
 
-    if (hideDescriptionBar) {
+    if (shouldHideDescriptionBar) {
         hideDescriptionBar();
     }
     
-    if (displayConcreteNumbers) {
+    if (shouldDisplayConcreteNumbers) {
         updateMetrics();
     }
 }
