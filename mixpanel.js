@@ -30,6 +30,7 @@ function updateValue() {
                 const value = valueMetric.shadowRoot.querySelector('div.value');
                 const valueText = value.textContent;
                 value.innerHTML = valueTooltip;
+                value.style.fontSize = '4vw';
 
                 console.log('valueText', valueText);
             }
