@@ -1,12 +1,17 @@
-var shouldHideSearchBar = false;
+// Global Settings and State
+var shouldHideSearchBar = true;
 var shouldHideDescriptionBar = false;
-var shouldDisplayConcreteNumbers = false;
+var shouldDisplayConcreteNumbers = true;
+
+// Log state, so we can continue to update.
+var updatesComplete = {};
+var observers = {};
 
 // Fetch options
 chrome.storage.sync.get(
 {
     hideSearchBar: true,
-    hideDescriptionBar: true,
+    hideDescriptionBar: false,
     displayConcreteNumbers: true
 },
 (items) => {
@@ -15,6 +20,14 @@ chrome.storage.sync.get(
     shouldDisplayConcreteNumbers = items.displayConcreteNumbers;
 
 });
+
+function updateMetricFromTooltip(metricSelector) {
+    const valueTooltip = metricSelector.getAttribute('value-tooltip');
+    const value = metricSelector.shadowRoot.querySelector('div.value');
+
+    value.innerHTML = valueTooltip;
+    value.style.fontSize = '4vw';
+}
 
 function updateMetric(multiMetricSelectorChart) {
     //console.log(multiMetricSelectorChart);
@@ -25,10 +38,9 @@ function updateMetric(multiMetricSelectorChart) {
             const metricSelector = multiMetricSelector.shadowRoot.querySelector('mp-metric');
             
             if (metricSelector) {
-                const valueTooltip = metricSelector.getAttribute('value-tooltip');
                 const value = metricSelector.shadowRoot.querySelector('div.value');
-                value.innerHTML = valueTooltip;
-                value.style.fontSize = '4vw';
+
+                updateMetricFromTooltip(metricSelector);
 
                 return true;
             }
@@ -40,13 +52,15 @@ function updateMetric(multiMetricSelectorChart) {
 
 function updateMetrics() {
     const allMetricCharts = document.querySelectorAll('mp-insights-metric-chart');
-    
+
     if (allMetricCharts.length === 0) {
         return false;
     }
     // Fetch all metrics and try to update
     for (let i = 0; i < allMetricCharts.length; i++) {
-        if (!updateMetric(allMetricCharts[i])) {
+        const currentMetricChart = allMetricCharts[i];
+
+        if (!updateMetric(currentMetricChart)) {
             return false;
         }
     }
@@ -54,7 +68,7 @@ function updateMetrics() {
     return true;
 }
 
-function hideDescriptionBar() {
+function hideCompleteDescriptionBar() {
     const topIntroHeader = document.querySelector('div.header');
 
     if (topIntroHeader) {
@@ -64,6 +78,40 @@ function hideDescriptionBar() {
     }
 
     return false;
+}
+
+function hideDescriptionBar() {
+    const topIntroHeader = document.querySelector('div.header');
+
+    if (!topIntroHeader) {
+        return false;
+    }
+
+    const mpLastUpdatedSelector = topIntroHeader.querySelector('mp-last-updated');
+
+    if (!mpLastUpdatedSelector) {
+        return false;
+    }
+
+    mpLastUpdatedSelector.parentElement.style.marginTop = '0px';
+    mpLastUpdatedSelector.parentElement.style.marginBottom = '0px';
+
+    // Board description container
+    const boardDescriptionContainer = mpLastUpdatedSelector.parentElement.parentElement.parentElement;
+
+    // Remove first child
+    boardDescriptionContainer.firstChild.style.display = 'none';
+
+    const boardDescriptionContainerWrapper = boardDescriptionContainer.parentElement;
+
+    boardDescriptionContainerWrapper.firstChild.style.display = 'none';
+
+    // Container of two columns that contains entire board description.
+    const boardCompleteDescription = boardDescriptionContainerWrapper.parentElement;
+
+    boardCompleteDescription.lastChild.style.display = 'none';
+
+    return true;
 }
 
 function hideSearchBar() {
@@ -76,9 +124,6 @@ function hideSearchBar() {
 
     return false;
 }
-
-// Log state, so we can continue to update.
-var updatesComplete = {};
 
 function update() {
     //console.log(window.location.toString());
@@ -102,6 +147,26 @@ function update() {
     if (shouldDisplayConcreteNumbers && !updatesComplete.displayConcreteNumbers) {
         if (updateMetrics()) {
             updatesComplete.displayConcreteNumbers = true;
+
+            // Set an observer to repeatedly update the metrics.
+            const changingSelector = document.querySelector('.cards-container');
+
+            const hash = changingSelector.hash;
+
+            // Add observer
+            if (!observers[hash]) {
+                let observer = new MutationObserver(function(mutations) {
+                    updatesComplete.displayConcreteNumbers = false;
+
+                    update();
+                });
+
+                observer.observe(changingSelector, {
+                    childList: true,
+                    subtree: true
+                });
+                observers[hash] = observer;
+            }
         }
     }
 

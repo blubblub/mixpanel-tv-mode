@@ -26,7 +26,7 @@ const saveOptions = () => {
     chrome.storage.sync.get(
       {
         hideSearchBar: true,
-        hideDescriptionBar: true,
+        hideDescriptionBar: false,
         displayConcreteNumbers: true
       },
       (items) => {
