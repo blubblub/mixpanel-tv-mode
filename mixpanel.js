@@ -17,6 +17,7 @@ chrome.storage.sync.get(
 });
 
 function updateMetric(multiMetricSelectorChart) {
+    //console.log(multiMetricSelectorChart);
     if (multiMetricSelectorChart.shadowRoot != null) {
         const multiMetricSelector = multiMetricSelectorChart.shadowRoot.querySelector('mp-multi-metric');
 
@@ -28,18 +29,29 @@ function updateMetric(multiMetricSelectorChart) {
                 const value = metricSelector.shadowRoot.querySelector('div.value');
                 value.innerHTML = valueTooltip;
                 value.style.fontSize = '4vw';
+
+                return true;
             }
         }
     }
+
+    return false;
 }
 
 function updateMetrics() {
     const allMetricCharts = document.querySelectorAll('mp-insights-metric-chart');
-
+    
+    if (allMetricCharts.length === 0) {
+        return false;
+    }
     // Fetch all metrics and try to update
     for (let i = 0; i < allMetricCharts.length; i++) {
-        updateMetric(allMetricCharts[i]);
+        if (!updateMetric(allMetricCharts[i])) {
+            return false;
+        }
     }
+
+    return true;
 }
 
 function hideDescriptionBar() {
@@ -47,7 +59,11 @@ function hideDescriptionBar() {
 
     if (topIntroHeader) {
         topIntroHeader.style.display = 'none';
-    }    
+
+        return true;
+    }
+
+    return false;
 }
 
 function hideSearchBar() {
@@ -55,26 +71,46 @@ function hideSearchBar() {
 
     if (topHeader) {
         topHeader.style.display = 'none';
-    }    
+        return true;
+    }
+
+    return false;
 }
 
+// Log state, so we can continue to update.
+var updatesComplete = {};
+
 function update() {
-    console.log(window.location.toString());
+    //console.log(window.location.toString());
     // Only active when tv=true
     if (window.location.toString().indexOf('tv=true') === -1) {
         return;
     }
 
-    if (shouldHideSearchBar) {
-        hideSearchBar();
+    if (shouldHideSearchBar && !updatesComplete.hideSearchBar) {
+        if (hideSearchBar()) {
+            updatesComplete.hideSearchBar = true;
+        }
     }
 
-    if (shouldHideDescriptionBar) {
-        hideDescriptionBar();
+    if (shouldHideDescriptionBar && !updatesComplete.hideDescriptionBar) {
+        if (hideDescriptionBar()) {
+            updatesComplete.hideDescriptionBar = true;
+        }
     }
     
-    if (shouldDisplayConcreteNumbers) {
-        updateMetrics();
+    if (shouldDisplayConcreteNumbers && !updatesComplete.displayConcreteNumbers) {
+        if (updateMetrics()) {
+            updatesComplete.displayConcreteNumbers = true;
+        }
+    }
+
+    if (updatesComplete.hideSearchBar && updatesComplete.hideDescriptionBar && updatesComplete.displayConcreteNumbers) {
+        return;
+    }
+    else {
+        // Rerun function if one of the updates failed.
+        setTimeout(update, 500);
     }
 }
 
