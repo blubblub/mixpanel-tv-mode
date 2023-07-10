@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+ 
+  "name": "Mixpanel TV Mode",
+  "version": "1.0.0",
+  "description": "This extension enables advanced TV mode for Mixpanel dashboards.",
+ 
+  "content_scripts": [
+    {
+      "js": ["mixpanel.js"],
+      "matches": ["https://mixpanel.com/*"]
+    }
+  ]
+}
